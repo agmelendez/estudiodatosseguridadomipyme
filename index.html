@@ -470,8 +470,7 @@
 
     // Detecta si Supabase está realmente configurado
     const SUPABASE_CONFIGURED = (
-      SUPABASE_URL !== 'https://bdsxdhbmzfqhprprfkto.supabase.co' &&
-      SUPABASE_KEY !== 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJkc3hkaGJtemZxaHBycHJma3RvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIwMzI0MzUsImV4cCI6MjA4NzYwODQzNX0.-bmd4slAl59-MHUlp0Ca8jg8VyjLyjunpvqg78SshZA' &&
+      SUPABASE_URL && SUPABASE_KEY &&
       SUPABASE_URL.startsWith('https://')
     );
 
