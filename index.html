@@ -1,0 +1,982 @@
+<!doctype html>
+<html lang="es" class="h-full">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Test de Seguridad IA · OMipymes UNED</title>
+
+  <script src="https://cdn.tailwindcss.com/3.4.17"></script>
+  <script src="/_sdk/element_sdk.js"></script>
+  <script src="/_sdk/data_sdk.js" type="text/javascript"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@400;500&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+
+  <style>
+    /* =========================================
+       DESIGN TOKENS & RESET
+    ========================================= */
+    :root {
+      --bg:        #0b0f19;
+      --surface:   #131929;
+      --surface-2: #1c2540;
+      --border:    rgba(255,255,255,0.08);
+      --accent:    #00e5a0;
+      --accent-dim:#00c488;
+      --warn:      #ff6b35;
+      --mid:       #f5a623;
+      --text:      #e8eaf0;
+      --text-muted:#8892a4;
+      --font-display: 'DM Serif Display', serif;
+      --font-body:    'DM Sans', sans-serif;
+      --font-mono:    'DM Mono', monospace;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font-body);
+      font-size: 16px;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* =========================================
+       BACKGROUND GRID TEXTURE
+    ========================================= */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(0,229,160,0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0,229,160,0.03) 1px, transparent 1px);
+      background-size: 48px 48px;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* Ambient blobs */
+    .blob {
+      position: fixed;
+      border-radius: 50%;
+      filter: blur(90px);
+      pointer-events: none;
+      z-index: 0;
+    }
+    .blob-1 { width: 500px; height: 500px; top: -150px; left: -100px; background: rgba(0,229,160,0.07); }
+    .blob-2 { width: 400px; height: 400px; bottom: -100px; right: -80px; background: rgba(255,107,53,0.06); }
+
+    /* =========================================
+       GLASS CARD
+    ========================================= */
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      backdrop-filter: blur(12px);
+    }
+
+    /* =========================================
+       PROGRESS BAR
+    ========================================= */
+    .progress-track {
+      height: 3px;
+      background: var(--surface-2);
+      border-radius: 2px;
+      overflow: hidden;
+    }
+    .progress-fill {
+      height: 100%;
+      background: var(--accent);
+      border-radius: 2px;
+      transition: width 0.4s cubic-bezier(0.4,0,0.2,1);
+    }
+
+    /* =========================================
+       LIKERT OPTIONS
+    ========================================= */
+    .likert-btn {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+      padding: 14px 8px;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      background: var(--surface-2);
+      cursor: pointer;
+      transition: all 0.18s ease;
+      color: var(--text-muted);
+      outline: none;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .likert-btn:hover:not(:disabled) {
+      border-color: var(--accent);
+      color: var(--text);
+      transform: translateY(-2px);
+    }
+    .likert-btn:focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: 2px;
+    }
+    .likert-btn.selected {
+      background: rgba(0,229,160,0.12);
+      border-color: var(--accent);
+      color: var(--accent);
+      transform: translateY(-3px);
+      box-shadow: 0 8px 24px rgba(0,229,160,0.18);
+    }
+    .likert-emoji { font-size: 1.6rem; line-height: 1; }
+    .likert-label { font-size: 0.7rem; font-weight: 600; text-align: center; letter-spacing: 0.03em; text-transform: uppercase; }
+    .likert-value {
+      width: 24px; height: 24px;
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 0.75rem; font-weight: 700;
+      font-family: var(--font-mono);
+      background: rgba(255,255,255,0.06);
+      border: 1px solid var(--border);
+      transition: all 0.18s ease;
+    }
+    .likert-btn.selected .likert-value {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: var(--bg);
+    }
+
+    /* =========================================
+       DEMOGRAPHIC OPTIONS
+    ========================================= */
+    .demo-btn {
+      padding: 14px 16px;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      background: var(--surface-2);
+      color: var(--text-muted);
+      font-size: 0.9rem;
+      font-weight: 500;
+      cursor: pointer;
+      text-align: left;
+      transition: all 0.18s ease;
+      outline: none;
+    }
+    .demo-btn:hover:not(:disabled) {
+      border-color: rgba(0,229,160,0.4);
+      color: var(--text);
+    }
+    .demo-btn:focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: 2px;
+    }
+    .demo-btn.selected {
+      background: rgba(0,229,160,0.1);
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+
+    /* =========================================
+       NAVIGATION BUTTONS
+    ========================================= */
+    .btn-nav {
+      flex: 1;
+      padding: 14px 20px;
+      border-radius: 10px;
+      font-weight: 600;
+      font-size: 0.9rem;
+      cursor: pointer;
+      transition: all 0.18s ease;
+      border: none;
+      outline: none;
+    }
+    .btn-nav:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+    .btn-prev {
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+    }
+    .btn-prev:hover:not(:disabled) { color: var(--text); border-color: rgba(255,255,255,0.2); }
+    .btn-prev:disabled { opacity: 0.35; cursor: not-allowed; }
+    .btn-next {
+      background: var(--accent);
+      color: var(--bg);
+    }
+    .btn-next:hover:not(:disabled) { background: var(--accent-dim); }
+    .btn-next:disabled { opacity: 0.35; cursor: not-allowed; }
+    .btn-submit {
+      width: 100%;
+      padding: 16px;
+      border-radius: 12px;
+      background: var(--accent);
+      color: var(--bg);
+      font-size: 1rem;
+      font-weight: 700;
+      cursor: pointer;
+      border: none;
+      margin-top: 16px;
+      transition: all 0.2s ease;
+      letter-spacing: 0.02em;
+    }
+    .btn-submit:hover:not(:disabled) { background: var(--accent-dim); transform: translateY(-1px); }
+    .btn-submit:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+    .btn-restart {
+      width: 100%;
+      padding: 14px;
+      border-radius: 10px;
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+      font-size: 0.9rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.18s ease;
+    }
+    .btn-restart:hover { color: var(--text); border-color: rgba(255,255,255,0.2); }
+
+    /* =========================================
+       QUESTION CARD ANIMATION
+    ========================================= */
+    @keyframes slideUp {
+      from { opacity: 0; transform: translateY(16px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .question-card { animation: slideUp 0.3s ease-out; }
+
+    /* =========================================
+       RESULTS
+    ========================================= */
+    @keyframes scaleIn {
+      from { opacity: 0; transform: scale(0.92); }
+      to   { opacity: 1; transform: scale(1); }
+    }
+    .result-reveal { animation: scaleIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1); }
+
+    .score-ring {
+      position: relative;
+      width: 120px; height: 120px;
+    }
+    .score-ring svg { transform: rotate(-90deg); }
+    .score-ring .score-number {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+
+    /* =========================================
+       CONSENT MODAL
+    ========================================= */
+    #consent-modal {
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,0.7);
+      display: flex; align-items: center; justify-content: center;
+      padding: 16px;
+      z-index: 100;
+      backdrop-filter: blur(4px);
+    }
+    .consent-box {
+      max-width: 640px; width: 100%;
+      max-height: 92vh;
+      overflow-y: auto;
+      padding: 36px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+    }
+    .consent-section {
+      padding: 16px;
+      border-radius: 10px;
+      margin-bottom: 12px;
+      font-size: 0.875rem;
+      line-height: 1.6;
+      color: var(--text-muted);
+    }
+
+    /* =========================================
+       TOAST NOTIFICATION
+    ========================================= */
+    #toast {
+      position: fixed;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%) translateY(80px);
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 12px 20px;
+      font-size: 0.875rem;
+      font-weight: 500;
+      z-index: 200;
+      transition: transform 0.3s ease;
+      white-space: nowrap;
+      max-width: 90vw;
+    }
+    #toast.show { transform: translateX(-50%) translateY(0); }
+    #toast.error { border-color: rgba(255,107,53,0.4); color: var(--warn); }
+    #toast.success { border-color: rgba(0,229,160,0.4); color: var(--accent); }
+
+    /* =========================================
+       UTILITY
+    ========================================= */
+    .hidden { display: none !important; }
+    .badge {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 4px 12px;
+      border-radius: 999px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+    }
+    .tag-accent { background: rgba(0,229,160,0.12); color: var(--accent); border: 1px solid rgba(0,229,160,0.25); }
+    .tag-dim    { background: rgba(255,255,255,0.06); color: var(--text-muted); border: 1px solid var(--border); }
+  </style>
+</head>
+<body>
+
+  <!-- Ambient background -->
+  <div class="blob blob-1"></div>
+  <div class="blob blob-2"></div>
+
+  <!-- ==========================================
+       TOAST
+  ========================================== -->
+  <div id="toast" role="alert" aria-live="polite"></div>
+
+  <!-- ==========================================
+       CONSENT MODAL
+  ========================================== -->
+  <div id="consent-modal" role="dialog" aria-modal="true" aria-labelledby="consent-title">
+    <div class="consent-box">
+      <div style="margin-bottom: 24px;">
+        <div class="badge tag-dim" style="margin-bottom: 12px;">OMipymes · UNED</div>
+        <h2 id="consent-title" style="font-family: var(--font-display); font-size: 1.8rem; color: var(--text); line-height: 1.2; margin-bottom: 8px;">
+          Consentimiento Informado
+        </h2>
+        <p style="font-size: 0.9rem; color: var(--text-muted);">Lea atentamente antes de continuar</p>
+      </div>
+
+      <div class="consent-section" style="background: rgba(255,107,53,0.07); border: 1px solid rgba(255,107,53,0.2);">
+        <p style="font-weight: 700; color: var(--warn); margin-bottom: 6px;">⚠️ Disclaimer</p>
+        Esta evaluación proporciona <strong style="color:var(--text);">orientación general</strong> sobre prácticas de seguridad en IA y <strong style="color:var(--text);">no constituye un diagnóstico profesional definitivo</strong>. Para un análisis completo de riesgos, consulte con especialistas en protección de datos.
+      </div>
+
+      <div class="consent-section" style="background: rgba(0,229,160,0.06); border: 1px solid rgba(0,229,160,0.15);">
+        <p style="font-weight: 700; color: var(--accent); margin-bottom: 8px;">🔒 Protección de Datos</p>
+        De conformidad con la <strong style="color:var(--text);">Ley de Protección de Datos Personales</strong>:
+        <ul style="margin-top: 8px; padding-left: 16px; list-style: disc; display: flex; flex-direction: column; gap: 4px;">
+          <li>Los datos se utilizarán exclusivamente para investigación académica</li>
+          <li>Cuenta con derecho de acceso, rectificación y supresión</li>
+          <li>Para ejercerlos, contacte al Observatorio OMipymes · UNED</li>
+        </ul>
+      </div>
+
+      <div class="consent-section" style="background: rgba(255,255,255,0.03); border: 1px solid var(--border);">
+        <p style="font-weight: 700; color: var(--text); margin-bottom: 8px;">✓ Compromisos</p>
+        <ul style="padding-left: 16px; list-style: disc; display: flex; flex-direction: column; gap: 4px;">
+          <li><strong style="color:var(--text);">No</strong> se solicitan contraseñas, tarjetas ni información financiera detallada</li>
+          <li><strong style="color:var(--text);">No</strong> se usará para publicidad ni contacto comercial</li>
+          <li>Participación <strong style="color:var(--text);">voluntaria</strong>: puede abandonar en cualquier momento</li>
+        </ul>
+      </div>
+
+      <div class="consent-section" style="background: rgba(255,255,255,0.03); border: 1px solid var(--border);">
+        <p style="font-weight: 700; color: var(--text); margin-bottom: 6px;">📚 Observatorio OMipymes</p>
+        Iniciativa de investigación de la <strong style="color:var(--text);">Universidad Estatal a Distancia (UNED)</strong> dedicada a fortalecer el ecosistema de micro y pequeña empresa mediante análisis basados en evidencia.
+      </div>
+
+      <button id="accept-consent-btn" class="btn-submit" style="margin-top: 8px;">
+        Aceptar y continuar →
+      </button>
+    </div>
+  </div>
+
+  <!-- ==========================================
+       MAIN CONTENT
+  ========================================== -->
+  <main id="main-content" class="hidden" style="position: relative; z-index: 1; max-width: 680px; margin: 0 auto; padding: 40px 20px 80px;">
+
+    <!-- Header -->
+    <header style="text-align: center; margin-bottom: 40px;">
+      <div class="badge tag-accent" style="margin-bottom: 16px;">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
+        Evaluación de Seguridad en IA
+      </div>
+      <h1 id="quiz-title" style="font-family: var(--font-display); font-size: 2.4rem; line-height: 1.15; color: var(--text); margin-bottom: 12px;">
+        ¿Qué tan segura es<br><em>tu empresa</em> al usar IA?
+      </h1>
+      <p id="quiz-subtitle" style="color: var(--text-muted); font-size: 1rem;">
+        Evalúa tus prácticas de protección de datos en 10 preguntas
+      </p>
+    </header>
+
+    <!-- Progress -->
+    <div id="progress-section" style="margin-bottom: 32px;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+        <span style="font-size: 0.8rem; color: var(--text-muted); font-family: var(--font-mono);">PROGRESO</span>
+        <span id="progress-text" style="font-size: 0.8rem; font-family: var(--font-mono); color: var(--accent);">0 / 14</span>
+      </div>
+      <div class="progress-track">
+        <div id="progress-bar" class="progress-fill" style="width:0%" role="progressbar" aria-valuemin="0" aria-valuemax="14" aria-valuenow="0"></div>
+      </div>
+      <div id="section-label" style="font-size: 0.75rem; color: var(--text-muted); margin-top: 8px; font-family: var(--font-mono);">
+        SECCIÓN 1 · PRÁCTICAS DE SEGURIDAD
+      </div>
+    </div>
+
+    <!-- Question / Demographic container -->
+    <div id="questions-container"></div>
+
+    <!-- Results container -->
+    <div id="results-container" class="hidden"></div>
+
+    <!-- Navigation buttons -->
+    <div id="nav-buttons" style="display: flex; gap: 12px; margin-top: 20px;">
+      <button id="prev-btn" class="btn-nav btn-prev" disabled aria-label="Pregunta anterior">← Anterior</button>
+      <button id="next-btn" class="btn-nav btn-next" disabled aria-label="Siguiente pregunta">Siguiente →</button>
+    </div>
+
+    <!-- Submit button (hidden initially) -->
+    <button id="submit-btn" class="btn-submit hidden" id="cta-text">
+      Ver mi resultado
+    </button>
+
+    <footer style="margin-top: 48px; padding-top: 24px; border-top: 1px solid var(--border); text-align: center;">
+      <p style="font-size: 0.75rem; color: var(--text-muted);">
+        Basado en la guía de la Agencia Española de Protección de Datos (AEPD) · OMipymes UNED
+      </p>
+    </footer>
+  </main>
+
+  <!-- ==========================================
+       JAVASCRIPT
+  ========================================== -->
+  <script>
+    'use strict';
+
+    /* ==========================================
+       CONFIGURACIÓN DE SUPABASE
+       ⚠️  Reemplaza estas variables con tus credenciales reales.
+           Si no están configuradas, el cuestionario funciona
+           normalmente pero NO guarda datos en la BD.
+    ========================================== */
+    const SUPABASE_URL = 'https://bdsxdhbmzfqhprprfkto.supabase.co';
+    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJkc3hkaGJtemZxaHBycHJma3RvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIwMzI0MzUsImV4cCI6MjA4NzYwODQzNX0.-bmd4slAl59-MHUlp0Ca8jg8VyjLyjunpvqg78SshZA';
+
+    // Detecta si Supabase está realmente configurado
+    const SUPABASE_CONFIGURED = (
+      SUPABASE_URL !== 'https://bdsxdhbmzfqhprprfkto.supabase.co' &&
+      SUPABASE_KEY !== 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJkc3hkaGJtemZxaHBycHJma3RvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIwMzI0MzUsImV4cCI6MjA4NzYwODQzNX0.-bmd4slAl59-MHUlp0Ca8jg8VyjLyjunpvqg78SshZA' &&
+      SUPABASE_URL.startsWith('https://')
+    );
+
+    const supabaseClient = SUPABASE_CONFIGURED
+      ? window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY)
+      : null;
+
+    /* ==========================================
+       DATOS DEL TEST
+    ========================================== */
+    const QUESTIONS = [
+      { id: 1,  category: 'Gobernanza y Políticas',  icon: '📋', text: 'En mi empresa existen reglas claras y comunicadas sobre qué herramientas de IA pueden usar los empleados y para qué fines específicos.' },
+      { id: 2,  category: 'Minimización de Datos',   icon: '🔒', text: 'Cuando usamos sistemas de IA, nos aseguramos de proporcionarles únicamente los datos estrictamente necesarios, evitando compartir información de más.' },
+      { id: 3,  category: 'Transparencia',            icon: '👁️', text: 'Informamos claramente a nuestros clientes cuando están interactuando con una IA o cuando sus datos son procesados por una.' },
+      { id: 4,  category: 'Supervisión Humana',       icon: '👤', text: 'Las decisiones importantes generadas por la IA siempre son revisadas y validadas por una persona antes de ser ejecutadas.' },
+      { id: 5,  category: 'Control de Memoria',       icon: '🧹', text: 'Borramos periódicamente el historial y la memoria de nuestras herramientas de IA para evitar que acumulen datos sensibles.' },
+      { id: 6,  category: 'Revisión de Terceros',     icon: '📄', text: 'Antes de usar una nueva herramienta de IA externa, revisamos sus términos de privacidad para proteger nuestra información.' },
+      { id: 7,  category: 'Control de Accesos',       icon: '🔐', text: 'Las herramientas de IA que usamos tienen permisos limitados, sin acceso libre a todos los datos de la empresa.' },
+      { id: 8,  category: 'Anonimización',            icon: '🎭', text: 'Ocultamos o eliminamos datos personales identificables antes de ingresarlos en herramientas de IA públicas.' },
+      { id: 9,  category: 'Trazabilidad',             icon: '📊', text: 'Llevamos un registro interno de qué sistemas de IA se utilizan, quién tiene acceso y qué datos manejan.' },
+      { id: 10, category: 'Capacitación',             icon: '🎓', text: 'Mi equipo y yo hemos recibido formación sobre los riesgos de privacidad y ciberseguridad al usar IA.' }
+    ];
+
+    const DEMOGRAPHIC_QUESTIONS = [
+      { id: 'gender', icon: '👥', text: 'Sexo del dueño/a de la empresa',    options: ['Masculino', 'Femenino', 'Otro', 'Prefiero no decir'] },
+      { id: 'age',    icon: '📅', text: 'Edad del dueño/a',                  options: ['Menos de 20 años', '20 a 40 años', '40 a 60 años', '60 años y más'] },
+      { id: 'sector', icon: '🏢', text: 'Sector económico',                  options: ['Sector Primario (minería, silvicultura, agricultura)', 'Sector Secundario (manufactura, transformación)', 'Sector Terciario/Servicios (logística, tecnología, consultoría)', 'Otro'] },
+      { id: 'years',  icon: '⏱️', text: 'Años de antigüedad de la empresa',  options: ['Menos de 5 años', '5 a 10 años', 'Más de 10 años'] }
+    ];
+
+    const LIKERT = [
+      { value: 1, label: 'Nunca',        emoji: '😰' },
+      { value: 2, label: 'Rara vez',     emoji: '😕' },
+      { value: 3, label: 'A veces',      emoji: '😐' },
+      { value: 4, label: 'Casi siempre', emoji: '😊' },
+      { value: 5, label: 'Siempre',      emoji: '🌟' }
+    ];
+
+    // ⚡ Constante calculada una sola vez
+    const TOTAL_QUESTIONS = QUESTIONS.length + DEMOGRAPHIC_QUESTIONS.length;
+
+    /* ==========================================
+       ESTADO
+    ========================================== */
+    let currentQuestion = 0;
+    let answers = {};
+
+    /* ==========================================
+       UTILIDADES
+    ========================================== */
+
+    /** Genera un UUID v4 simple para identificar la sesión */
+    function generateSessionId() {
+      return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
+        const r = Math.random() * 16 | 0;
+        return (c === 'x' ? r : (r & 0x3 | 0x8)).toString(16);
+      });
+    }
+
+    const SESSION_ID = generateSessionId();
+
+    /** Muestra una notificación toast temporal */
+    function showToast(message, type = 'success', duration = 4000) {
+      const toast = document.getElementById('toast');
+      toast.textContent = message;
+      toast.className = `show ${type}`;
+      clearTimeout(toast._timeout);
+      toast._timeout = setTimeout(() => {
+        toast.className = '';
+      }, duration);
+    }
+
+    /* ==========================================
+       RENDERIZADO
+    ========================================== */
+
+    function renderQuestion(index) {
+      const q = QUESTIONS[index];
+      const selected = answers[q.id] ?? null;
+      const container = document.getElementById('questions-container');
+
+      container.innerHTML = `
+        <div class="card question-card" style="padding: 32px;">
+          <div style="display:flex; align-items:center; gap:12px; margin-bottom:20px;">
+            <span style="font-size:1.8rem;" role="img" aria-label="${q.category}">${q.icon}</span>
+            <div>
+              <div class="badge tag-dim">${q.category}</div>
+            </div>
+            <span style="margin-left:auto; font-family: var(--font-mono); font-size:0.75rem; color:var(--text-muted);">${index + 1} / ${QUESTIONS.length}</span>
+          </div>
+          <p style="font-size:1.1rem; line-height:1.65; color:var(--text); margin-bottom:32px;">${q.text}</p>
+          <div style="display:flex; gap:8px;" role="group" aria-label="Escala de frecuencia">
+            ${LIKERT.map(opt => `
+              <button
+                class="likert-btn ${selected === opt.value ? 'selected' : ''}"
+                onclick="selectAnswer(${q.id}, ${opt.value})"
+                aria-label="${opt.label}"
+                aria-pressed="${selected === opt.value}"
+              >
+                <span class="likert-emoji" role="img" aria-hidden="true">${opt.emoji}</span>
+                <span class="likert-label">${opt.label}</span>
+                <span class="likert-value">${opt.value}</span>
+              </button>
+            `).join('')}
+          </div>
+        </div>
+      `;
+
+      updateProgress();
+      updateNavButtons();
+    }
+
+    function renderDemographic(index) {
+      const qIdx = index - QUESTIONS.length;
+      const q = DEMOGRAPHIC_QUESTIONS[qIdx];
+      const selected = answers[q.id] ?? null;
+      const container = document.getElementById('questions-container');
+
+      container.innerHTML = `
+        <div class="card question-card" style="padding: 32px;">
+          <div style="display:flex; align-items:center; gap:12px; margin-bottom:20px;">
+            <span style="font-size:1.8rem;" role="img" aria-label="Información demográfica">${q.icon}</span>
+            <div class="badge" style="background:rgba(245,166,35,0.1); color:var(--mid); border:1px solid rgba(245,166,35,0.25);">Información General</div>
+            <span style="margin-left:auto; font-family:var(--font-mono); font-size:0.75rem; color:var(--text-muted);">${qIdx + 1} / ${DEMOGRAPHIC_QUESTIONS.length}</span>
+          </div>
+          <p style="font-size:1.1rem; line-height:1.65; color:var(--text); margin-bottom:28px;">${q.text}</p>
+          <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;" role="group" aria-label="${q.text}">
+            ${q.options.map(opt => `
+              <button
+                class="demo-btn ${selected === opt ? 'selected' : ''}"
+                onclick="selectAnswer('${q.id}', '${opt.replace(/'/g, "\\'")}')"
+                aria-pressed="${selected === opt}"
+              >${opt}</button>
+            `).join('')}
+          </div>
+        </div>
+      `;
+
+      updateProgress();
+      updateNavButtons();
+    }
+
+    function renderCurrent() {
+      if (currentQuestion < QUESTIONS.length) {
+        renderQuestion(currentQuestion);
+      } else {
+        renderDemographic(currentQuestion);
+      }
+    }
+
+    /* ==========================================
+       PROGRESO Y NAVEGACIÓN
+    ========================================== */
+
+    function updateProgress() {
+      const answered = Object.keys(answers).length;
+      const pct = (answered / TOTAL_QUESTIONS) * 100;
+
+      document.getElementById('progress-bar').style.width = `${pct}%`;
+      document.getElementById('progress-bar').setAttribute('aria-valuenow', answered);
+      document.getElementById('progress-text').textContent = `${answered} / ${TOTAL_QUESTIONS}`;
+
+      const label = document.getElementById('section-label');
+      if (currentQuestion < QUESTIONS.length) {
+        label.textContent = `SECCIÓN 1 · PRÁCTICAS DE SEGURIDAD (${currentQuestion + 1}/${QUESTIONS.length})`;
+      } else {
+        const dIdx = currentQuestion - QUESTIONS.length + 1;
+        label.textContent = `SECCIÓN 2 · INFORMACIÓN GENERAL (${dIdx}/${DEMOGRAPHIC_QUESTIONS.length})`;
+      }
+    }
+
+    function updateNavButtons() {
+      const prevBtn   = document.getElementById('prev-btn');
+      const nextBtn   = document.getElementById('next-btn');
+      const submitBtn = document.getElementById('submit-btn');
+
+      // Botón Anterior
+      prevBtn.disabled = (currentQuestion === 0);
+
+      if (currentQuestion === TOTAL_QUESTIONS - 1) {
+        // Última pregunta
+        nextBtn.classList.add('hidden');
+        const allAnswered = Object.keys(answers).length === TOTAL_QUESTIONS;
+        submitBtn.classList.toggle('hidden', !allAnswered);
+      } else {
+        // Preguntas intermedias
+        nextBtn.classList.remove('hidden');
+        submitBtn.classList.add('hidden');
+
+        const currentId = currentQuestion < QUESTIONS.length
+          ? QUESTIONS[currentQuestion].id
+          : DEMOGRAPHIC_QUESTIONS[currentQuestion - QUESTIONS.length].id;
+        nextBtn.disabled = !answers[currentId];
+      }
+    }
+
+    /* ==========================================
+       INTERACCIÓN
+    ========================================== */
+
+    function selectAnswer(questionId, value) {
+      answers[questionId] = value;
+
+      // Auto-avance si no es la última pregunta
+      if (currentQuestion < TOTAL_QUESTIONS - 1) {
+        setTimeout(() => {
+          currentQuestion++;
+          renderCurrent();
+        }, 280);
+      } else {
+        // En la última pregunta, sólo actualiza los botones
+        updateNavButtons();
+        // Re-renderizar para reflejar la selección visualmente
+        renderCurrent();
+      }
+    }
+
+    /* ==========================================
+       CÁLCULO DE RESULTADOS
+    ========================================== */
+
+    function calcResults() {
+      const totalScore = Object.values(answers)
+        .filter(v => typeof v === 'number')
+        .reduce((sum, v) => sum + v, 0);
+
+      let level, levelColor, levelEmoji, message, recommendations;
+
+      if (totalScore >= 40) {
+        level   = 'Nivel Experto';
+        levelColor = 'var(--accent)';
+        levelEmoji = '🏆';
+        message = '¡Excelentes prácticas de seguridad! Tu empresa tiene una postura sólida frente a los riesgos de IA.';
+        recommendations = [
+          'Mantén actualizadas tus políticas de IA conforme evoluciona la regulación',
+          'Considera obtener certificaciones formales en protección de datos (ISO 27001, RGPD)',
+          'Comparte estas prácticas con el ecosistema de MIPYMEs de tu región'
+        ];
+      } else if (totalScore >= 25) {
+        level   = 'Nivel Intermedio';
+        levelColor = 'var(--mid)';
+        levelEmoji = '📈';
+        message = 'Vas por buen camino. Existen áreas concretas con margen de mejora importante.';
+        recommendations = [
+          'Documenta formalmente qué herramientas de IA se usan y con qué datos',
+          'Establece una política escrita de uso responsable de IA para tu equipo',
+          'Incorpora al menos una sesión de capacitación anual en privacidad digital'
+        ];
+      } else {
+        level   = 'Nivel de Riesgo';
+        levelColor = 'var(--warn)';
+        levelEmoji = '⚠️';
+        message = 'Atención: Tu empresa presenta vulnerabilidades significativas que requieren acción inmediata.';
+        recommendations = [
+          'Audita de inmediato qué datos comparten tus herramientas de IA con terceros',
+          'Implementa reglas básicas: nunca ingresar datos de clientes en IA públicas sin anonimizar',
+          'Busca asesoría en ciberseguridad especializada para MIPYMEs de tu sector'
+        ];
+      }
+
+      return { totalScore, level, levelColor, levelEmoji, message, recommendations };
+    }
+
+    /* ==========================================
+       GUARDAR EN SUPABASE
+    ========================================== */
+
+    async function saveToSupabase(totalScore, level) {
+      if (!SUPABASE_CONFIGURED) {
+        console.warn('[OMipymes] Supabase no configurado — datos no persistidos (modo desarrollo).');
+        return { saved: false, reason: 'not_configured' };
+      }
+
+      // Guardia de validación: verificar que las 10 respuestas Likert sean números válidos
+      const likertIds = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+      const missingLikert = likertIds.filter(id => typeof answers[id] !== 'number');
+      if (missingLikert.length > 0) {
+        console.error('[OMipymes] Respuestas Likert faltantes o inválidas:', missingLikert);
+        return { saved: false, reason: 'validation_error', missing: missingLikert };
+      }
+
+      const now = new Date().toISOString();
+
+      try {
+        const { data, error } = await supabaseClient
+          .from('ia_security_assessments')
+          .insert([{
+            session_id:    SESSION_ID,
+            submitted_at:  now,
+            // Respuestas Likert (SMALLINT 1–5)
+            q1:  answers[1],  q2:  answers[2],  q3:  answers[3],
+            q4:  answers[4],  q5:  answers[5],  q6:  answers[6],
+            q7:  answers[7],  q8:  answers[8],  q9:  answers[9],
+            q10: answers[10],
+            // Demográficas
+            demo_gender: answers['gender'] ?? null,
+            demo_age:    answers['age']    ?? null,
+            demo_sector: answers['sector'] ?? null,
+            demo_years:  answers['years']  ?? null,
+            // Resultado
+            total_score: totalScore,
+            risk_level:  level,
+            // Consentimiento informado (requerido para cumplimiento Ley 8968 CR / RGPD)
+            consent_given: true,
+            consent_at:    now
+          }])
+          .select('id');  // ← solicitar ID generado; si RLS bloquea, data será [] con error null
+
+        // Error explícito de Supabase (red, constraint, etc.)
+        if (error) throw error;
+
+        // Insert silencioso por RLS: Supabase devuelve data:[] sin error
+        if (!data || data.length === 0) {
+          throw new Error(
+            'INSERT silencioso: la fila no fue creada. ' +
+            'Revisar política RLS "anon_can_insert" en Supabase.'
+          );
+        }
+
+        console.info(`[OMipymes] Registro guardado exitosamente. ID: ${data[0].id}`);
+        return { saved: true, id: data[0].id };
+
+      } catch (err) {
+        console.error('[OMipymes] Error al guardar en Supabase:', err.message ?? err);
+        return { saved: false, reason: 'db_error', error: err };
+      }
+    }
+
+    /* ==========================================
+       MOSTRAR RESULTADOS
+    ========================================== */
+
+    async function showResults() {
+      const submitBtn = document.getElementById('submit-btn');
+      submitBtn.disabled = true;
+      submitBtn.textContent = 'Guardando resultados…';
+
+      const { totalScore, level, levelColor, levelEmoji, message, recommendations } = calcResults();
+      const circumference = 2 * Math.PI * 52;
+      const offset = circumference - (totalScore / 50) * circumference;
+
+      // Intentar guardar en BD
+      const result = await saveToSupabase(totalScore, level);
+      if (result.saved) {
+        showToast('✓ Resultados guardados correctamente', 'success');
+      } else if (result.reason === 'db_error') {
+        showToast('⚠️ No se pudieron guardar los datos (error de conexión)', 'error', 6000);
+      }
+      // Si reason === 'not_configured', silencioso (entorno de desarrollo)
+
+      // Ocultar formulario
+      document.getElementById('progress-section').classList.add('hidden');
+      document.getElementById('questions-container').classList.add('hidden');
+      document.getElementById('nav-buttons').classList.add('hidden');
+      submitBtn.classList.add('hidden');
+
+      // Mostrar resultados
+      const rc = document.getElementById('results-container');
+      rc.classList.remove('hidden');
+      rc.innerHTML = `
+        <div class="card result-reveal" style="padding: 40px; text-align:center;">
+          <div style="font-size:3.5rem; margin-bottom:20px;">${levelEmoji}</div>
+
+          <!-- Score ring -->
+          <div class="score-ring" style="margin: 0 auto 24px;">
+            <svg width="120" height="120" viewBox="0 0 120 120">
+              <circle cx="60" cy="60" r="52" fill="none" stroke="var(--surface-2)" stroke-width="10"/>
+              <circle cx="60" cy="60" r="52" fill="none" stroke="${levelColor}" stroke-width="10"
+                stroke-dasharray="${circumference}" stroke-dashoffset="${offset}"
+                stroke-linecap="round" style="transition: stroke-dashoffset 1s ease;"/>
+            </svg>
+            <div class="score-number">
+              <span style="font-family:var(--font-display); font-size:2rem; color:${levelColor};">${totalScore}</span>
+              <span style="font-size:0.7rem; color:var(--text-muted); font-family:var(--font-mono);">/ 50</span>
+            </div>
+          </div>
+
+          <div class="badge" style="background:rgba(255,255,255,0.06); color:${levelColor}; border:1px solid ${levelColor}40; margin-bottom:16px; font-size:0.85rem;">
+            ${level}
+          </div>
+
+          <p style="font-size:1rem; color:var(--text-muted); line-height:1.6; max-width:480px; margin:0 auto 32px;">${message}</p>
+
+          <!-- Recommendations -->
+          <div style="text-align:left; background:var(--surface-2); border-radius:12px; padding:24px; margin-bottom:28px;">
+            <p style="font-size:0.75rem; font-family:var(--font-mono); color:var(--text-muted); letter-spacing:0.05em; margin-bottom:16px;">PRÓXIMOS PASOS</p>
+            <ul style="display:flex; flex-direction:column; gap:14px; list-style:none; padding:0;">
+              ${recommendations.map((rec, i) => `
+                <li style="display:flex; gap:12px; align-items:flex-start;">
+                  <span style="flex-shrink:0; width:22px; height:22px; border-radius:50%; background:rgba(0,229,160,0.12); border:1px solid rgba(0,229,160,0.3); display:flex; align-items:center; justify-content:center; font-size:0.7rem; font-weight:700; font-family:var(--font-mono); color:var(--accent);">${i+1}</span>
+                  <span style="font-size:0.9rem; color:var(--text-muted); line-height:1.5;">${rec}</span>
+                </li>
+              `).join('')}
+            </ul>
+          </div>
+
+          <div style="font-size:0.7rem; font-family:var(--font-mono); color:var(--text-muted); margin-bottom:20px;">
+            ID de sesión: ${SESSION_ID.slice(0,8)}…
+          </div>
+
+          <button onclick="restartQuiz()" class="btn-restart">↩ Repetir evaluación</button>
+        </div>
+      `;
+    }
+
+    /* ==========================================
+       REINICIAR
+    ========================================== */
+
+    function restartQuiz() {
+      currentQuestion = 0;
+      answers = {};
+
+      document.getElementById('progress-section').classList.remove('hidden');
+      document.getElementById('questions-container').classList.remove('hidden');
+      document.getElementById('nav-buttons').classList.remove('hidden');
+      document.getElementById('results-container').classList.add('hidden');
+      document.getElementById('submit-btn').classList.add('hidden');
+
+      renderCurrent();
+    }
+
+    /* ==========================================
+       EVENTOS
+    ========================================== */
+
+    document.getElementById('accept-consent-btn').addEventListener('click', () => {
+      document.getElementById('consent-modal').style.display = 'none';
+      document.getElementById('main-content').classList.remove('hidden');
+      renderCurrent();  // ← única llamada inicial
+    });
+
+    document.getElementById('prev-btn').addEventListener('click', () => {
+      if (currentQuestion > 0) {
+        currentQuestion--;
+        renderCurrent();
+      }
+    });
+
+    document.getElementById('next-btn').addEventListener('click', () => {
+      if (currentQuestion < TOTAL_QUESTIONS - 1) {
+        currentQuestion++;
+        renderCurrent();
+      }
+    });
+
+    document.getElementById('submit-btn').addEventListener('click', showResults);
+
+    /* ==========================================
+       SDK DE PERSONALIZACIÓN (opcional)
+    ========================================== */
+    const defaultConfig = {
+      quiz_title:       '¿Qué tan segura es tu empresa al usar IA?',
+      quiz_subtitle:    'Evalúa tus prácticas de protección de datos en 10 preguntas',
+      cta_text:         'Ver mi resultado',
+      background_color: '#0b0f19',
+      surface_color:    '#131929',
+      text_color:       '#e8eaf0',
+      primary_color:    '#00e5a0',
+      secondary_color:  '#ff6b35',
+      font_family:      'DM Serif Display',
+      font_size:        16
+    };
+
+    function applyConfig(config) {
+      const title = document.getElementById('quiz-title');
+      const sub   = document.getElementById('quiz-subtitle');
+      const cta   = document.getElementById('submit-btn');
+      if (title) title.textContent = config.quiz_title || defaultConfig.quiz_title;
+      if (sub)   sub.textContent   = config.quiz_subtitle || defaultConfig.quiz_subtitle;
+      if (cta)   cta.textContent   = config.cta_text || defaultConfig.cta_text;
+      document.documentElement.style.setProperty('--bg',      config.background_color || defaultConfig.background_color);
+      document.documentElement.style.setProperty('--surface', config.surface_color    || defaultConfig.surface_color);
+      document.documentElement.style.setProperty('--text',    config.text_color       || defaultConfig.text_color);
+      document.documentElement.style.setProperty('--accent',  config.primary_color    || defaultConfig.primary_color);
+      document.documentElement.style.setProperty('--warn',    config.secondary_color  || defaultConfig.secondary_color);
+      document.body.style.fontSize = `${config.font_size || defaultConfig.font_size}px`;
+    }
+
+    if (window.elementSdk) {
+      window.elementSdk.init({
+        defaultConfig,
+        onConfigChange: applyConfig,
+        mapToCapabilities: (config) => ({
+          recolorables: [
+            { get: () => config.background_color || defaultConfig.background_color, set: v => window.elementSdk.setConfig({ background_color: v }) },
+            { get: () => config.surface_color    || defaultConfig.surface_color,    set: v => window.elementSdk.setConfig({ surface_color: v }) },
+            { get: () => config.text_color       || defaultConfig.text_color,       set: v => window.elementSdk.setConfig({ text_color: v }) },
+            { get: () => config.primary_color    || defaultConfig.primary_color,    set: v => window.elementSdk.setConfig({ primary_color: v }) },
+            { get: () => config.secondary_color  || defaultConfig.secondary_color,  set: v => window.elementSdk.setConfig({ secondary_color: v }) }
+          ],
+          borderables: [],
+          fontEditable:   { get: () => config.font_family || defaultConfig.font_family, set: v => window.elementSdk.setConfig({ font_family: v }) },
+          fontSizeable:   { get: () => config.font_size   || defaultConfig.font_size,   set: v => window.elementSdk.setConfig({ font_size: v }) }
+        }),
+        mapToEditPanelValues: (config) => new Map([
+          ['quiz_title',    config.quiz_title    || defaultConfig.quiz_title],
+          ['quiz_subtitle', config.quiz_subtitle || defaultConfig.quiz_subtitle],
+          ['cta_text',      config.cta_text      || defaultConfig.cta_text]
+        ])
+      });
+    }
+
+    // ⚠️ NO se llama renderQuestion(0) aquí.
+    // La primera renderización ocurre SÓLO dentro del handler de consentimiento.
+  </script>
+</body>
+</html>
